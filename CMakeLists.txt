@@ -8,6 +8,8 @@ add_subdirectory(third_party/oscpack EXCLUDE_FROM_ALL)
 
 set(vmcrec_FILES
   src/main.cpp
+  src/VMCPacketListener.cpp
+  include/VMCPacketListener.hpp
 )
 
 set (VMCREC_INCLUDES
@@ -19,11 +21,10 @@ set(EXE_NAME vmcrec)
 add_executable(${EXE_NAME} ${vmcrec_FILES})
 set_property(TARGET ${EXE_NAME} PROPERTY CXX_STANDARD 11)
 
-
 target_include_directories(${EXE_NAME} PRIVATE ${VMCREC_INCLUDES})
 
 target_link_libraries(${EXE_NAME} PRIVATE flatbuffers)
-target_link_libraries(${EXE_NAME} PRIVATE oscpack)
+target_link_libraries(${EXE_NAME} PRIVATE oscpack Ws2_32 winmm)
 
 if(MSVC)
   if(CMAKE_CXX_FLAGS MATCHES "/W[0-4]")

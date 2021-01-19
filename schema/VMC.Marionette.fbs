@@ -1,0 +1,35 @@
+namespace VMC.Marionette;
+enum Address:byte { OK, Root_Pos, Bone_Pos, Blend_Val, Bend_Aply }
+struct Available {
+  loaded:byte;
+  calibrationState:byte;
+  calibrationMode:byte;
+  trackingState:byte;
+}
+struct Vec3 {
+  x:float;
+  y:float;
+  z:float;
+}
+struct Vec4 {
+  x:float;
+  y:float;
+  z:float;
+  w:float;
+}
+table Command {
+  address:Address;
+  localtime:float;
+  p:Vec3;
+  q:Vec4;
+  s:Vec3;
+  o:Vec3;
+  available:Available;
+  values:[Value];
+  name:string;
+}
+table Value {
+  name:string;
+  value:float;
+}
+root_type Command;
