@@ -26,9 +26,9 @@ enum Address {
   Address_Root_Pos = 1,
   Address_Bone_Pos = 2,
   Address_Blend_Val = 3,
-  Address_Bend_Aply = 4,
+  Address_Bend_Apply = 4,
   Address_MIN = Address_OK,
-  Address_MAX = Address_Bend_Aply
+  Address_MAX = Address_Bend_Apply
 };
 
 inline const Address (&EnumValuesAddress())[5] {
@@ -37,7 +37,7 @@ inline const Address (&EnumValuesAddress())[5] {
     Address_Root_Pos,
     Address_Bone_Pos,
     Address_Blend_Val,
-    Address_Bend_Aply
+    Address_Bend_Apply
   };
   return values;
 }
@@ -48,14 +48,14 @@ inline const char * const *EnumNamesAddress() {
     "Root_Pos",
     "Bone_Pos",
     "Blend_Val",
-    "Bend_Aply",
+    "Bend_Apply",
     nullptr
   };
   return names;
 }
 
 inline const char *EnumNameAddress(Address e) {
-  if (flatbuffers::IsOutRange(e, Address_OK, Address_Bend_Aply)) return "";
+  if (flatbuffers::IsOutRange(e, Address_OK, Address_Bend_Apply)) return "";
   const size_t index = static_cast<size_t>(e);
   return EnumNamesAddress()[index];
 }

@@ -18,10 +18,12 @@ public:
     virtual ~VmcPacketListener();
     virtual void ProcessMessage(const osc::ReceivedMessage& m,
         const IpEndpointName& remoteEndpoint);
+
     void Save();
     void Finish();
 
 private:
+    std::ofstream fout;
     std::string output;
     bool online;
     std::unordered_map<std::string, float> blendshapes;

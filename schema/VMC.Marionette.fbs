@@ -1,5 +1,5 @@
 namespace VMC.Marionette;
-enum Address:byte { OK, Root_Pos, Bone_Pos, Blend_Val, Bend_Aply }
+enum Address:byte { OK, Root_Pos, Bone_Pos, Blend_Val, Bend_Apply }
 struct Available {
   loaded:byte;
   calibrationState:byte;

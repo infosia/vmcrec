@@ -8,11 +8,12 @@ VmcPacketListener::VmcPacketListener(std::string& output)
     : OscPacketListener()
     , output(output)
     , online(true)
-    , builder(1024)
+    , builder(1024 * 1000) /* bytes */
     , blendshapes()
     , timedelta(std::chrono::steady_clock::now())
     , uptime(0)
 {
+    fout.open(output.c_str(), std::ios::out | std::ios::app | std::ios::binary);
 }
 
 VmcPacketListener::~VmcPacketListener()
@@ -80,29 +81,32 @@ void VmcPacketListener::ProcessMessage(const osc::ReceivedMessage& m,
         auto fbvec = builder.CreateVector(values);
 
         CommandBuilder command(builder);
-        command.add_address(Address::Address_Bend_Aply);
+        command.add_address(Address::Address_Bend_Apply);
         command.add_localtime(uptime);
         command.add_values(fbvec);
         builder.Finish(command.Finish());
 
         blendshapes.clear();
     }
+
+    Save();
 }
 
 void VmcPacketListener::Save()
 {
-    const auto buffer = builder.GetBufferPointer();
-    const auto size = builder.GetSize();
+    const uint8_t* buffer = builder.GetBufferPointer();
+    const uint32_t size = builder.GetSize();
 
-    std::ofstream fout;
-    fout.open(output.c_str(), std::ios::out | std::ios::app | std::ios::binary);
-    fout.write(reinterpret_cast<const char*>(buffer), builder.GetSize());
-    fout.close();
+    if (size > 0) {
+        fout.write(reinterpret_cast<const char*>(&size), 4);
+        fout.write(reinterpret_cast<const char*>(buffer), size);
 
-    builder.Clear();
+        builder.Clear();    
+    }
 }
 
 void VmcPacketListener::Finish()
 {
     Save();
+    fout.close();
 }
