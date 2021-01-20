@@ -80,7 +80,7 @@ int main(int argc, char* argv[])
 
             send(command, port);
 
-            delete buffer;
+            delete[] buffer;
         }
 
         std::cout << "[INFO] Total: " << count << " records" << std::endl;
