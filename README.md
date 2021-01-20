@@ -19,10 +19,10 @@ You need [VirtualMotionCapture](https://sh-akira.github.io/VirtualMotionCapture/
 
 ## Options
 
-- `--p <port number>` ... port number to listen VMC data. `39539` by default.
-- `--o <output file name>` ... Output file name to generate.
+- `-p <port number>` ... port number to listen VMC data. `39539` by default.
+- `-o <output file name>` ... Output file name to generate.
 - `--replay`  ... Start replaying dump file. Must use with `-i` option.
-- `--i <input file name>`  ... Input file name to replay.
+- `-i <input file name>`  ... Input file name to replay.
 
 ## Building
 
