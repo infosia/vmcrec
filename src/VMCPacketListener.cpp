@@ -1,16 +1,14 @@
 #include "VMCPacketListener.hpp"
 
-#include <fstream>
-
 using namespace VMC::Marionette;
 
 VmcPacketListener::VmcPacketListener(std::string& output)
     : OscPacketListener()
     , output(output)
     , online(true)
-    , builder(1024 * 1000) /* bytes */
+    , builder(1024) /* bytes */
     , blendshapes()
-    , timedelta(std::chrono::steady_clock::now())
+    , lasttime(std::chrono::steady_clock::now())
     , uptime(0)
 {
     fout.open(output.c_str(), std::ios::out | std::ios::app | std::ios::binary);
@@ -26,9 +24,9 @@ void VmcPacketListener::ProcessMessage(const osc::ReceivedMessage& m,
     (void)remoteEndpoint; // UNUSED
 
     const auto now = std::chrono::steady_clock::now();
-    const auto delta = std::chrono::duration_cast<std::chrono::milliseconds>(now - timedelta);
+    const auto delta = std::chrono::duration_cast<std::chrono::milliseconds>(now - lasttime);
     uptime += delta.count() / 1000.0f;
-    timedelta = now;
+    lasttime = now;
 
     auto arg = m.ArgumentsBegin();
     const auto address = m.AddressPattern();
@@ -42,6 +40,7 @@ void VmcPacketListener::ProcessMessage(const osc::ReceivedMessage& m,
         command.add_localtime(uptime);
         command.add_available(&available);
         builder.Finish(command.Finish());
+        Save();
     } else if (std::strcmp(address, "/VMC/Ext/Root/Pos") == 0) {
         const auto name = (arg++)->AsStringUnchecked();
 
@@ -61,6 +60,7 @@ void VmcPacketListener::ProcessMessage(const osc::ReceivedMessage& m,
         command.add_o(&o);
         command.add_name(fbname);
         builder.Finish(command.Finish());
+        Save();
     } else if (std::strcmp(address, "/VMC/Ext/Bone/Pos") == 0) {
         auto p = Vec3((arg++)->AsFloatUnchecked(), (arg++)->AsFloatUnchecked(), (arg++)->AsFloatUnchecked());
         auto q = Vec4((arg++)->AsFloatUnchecked(), (arg++)->AsFloatUnchecked(), (arg++)->AsFloatUnchecked(), (arg++)->AsFloatUnchecked());
@@ -70,6 +70,7 @@ void VmcPacketListener::ProcessMessage(const osc::ReceivedMessage& m,
         command.add_p(&p);
         command.add_q(&q);
         builder.Finish(command.Finish());
+        Save();
     } else if (std::strcmp(address, "/VMC/Ext/Blend/Val") == 0) {
         blendshapes.emplace((arg++)->AsStringUnchecked(), (arg++)->AsFloatUnchecked());
     } else if (std::strcmp(address, "/VMC/Ext/Blend/Apply") == 0 && blendshapes.size() > 0) {
@@ -85,11 +86,10 @@ void VmcPacketListener::ProcessMessage(const osc::ReceivedMessage& m,
         command.add_localtime(uptime);
         command.add_values(fbvec);
         builder.Finish(command.Finish());
+        Save();
 
         blendshapes.clear();
     }
-
-    Save();
 }
 
 void VmcPacketListener::Save()
@@ -107,6 +107,5 @@ void VmcPacketListener::Save()
 
 void VmcPacketListener::Finish()
 {
-    Save();
     fout.close();
 }

@@ -3,6 +3,7 @@
 #include <chrono>
 #include <string>
 #include <unordered_map>
+#include <fstream>
 
 #include "flatbuffers/flatbuffers.h"
 #include "ip/UdpSocket.h"
@@ -28,6 +29,6 @@ private:
     bool online;
     std::unordered_map<std::string, float> blendshapes;
     flatbuffers::FlatBufferBuilder builder;
-    std::chrono::steady_clock::time_point timedelta;
+    std::chrono::steady_clock::time_point lasttime;
     float uptime;
 };
