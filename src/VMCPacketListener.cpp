@@ -10,6 +10,7 @@ VmcPacketListener::VmcPacketListener(std::string& output)
     , blendshapes()
     , lasttime(std::chrono::steady_clock::now())
     , uptime(0)
+    , calibrated(false)
 {
     fout.open(output.c_str(), std::ios::out | std::ios::app | std::ios::binary);
 }
@@ -30,23 +31,29 @@ void VmcPacketListener::ProcessMessage(const osc::ReceivedMessage& m,
 
     auto arg = m.ArgumentsBegin();
     const auto address = m.AddressPattern();
-    if (std::strcmp(address, "/VMC/Ext/OK") == 0) {
+    if (!calibrated && std::strcmp(address, "/VMC/Ext/OK") == 0) {
 
         const auto loaded = (arg++)->AsInt32Unchecked();
         const auto calibrationState = (arg++)->AsInt32Unchecked();
         const auto calibrationMode = (arg++)->AsInt32Unchecked();
         const auto trackingState = (arg++)->AsInt32Unchecked();
 
-        auto available = Available((uint8_t)loaded, (uint8_t)calibrationState,
-            (uint8_t)calibrationMode, (uint8_t)trackingState);
+        // Start recording only after alibration is done
+        if (calibrationState == 3) {
+            calibrated = true;
 
-        CommandBuilder command(builder);
-        command.add_address(Address::Address_OK);
-        command.add_localtime(uptime);
-        command.add_available(&available);
-        builder.Finish(command.Finish());
-        Save();
-    } else if (std::strcmp(address, "/VMC/Ext/Root/Pos") == 0) {
+            auto available = Available((uint8_t)loaded, (uint8_t)calibrationState,
+                (uint8_t)calibrationMode, (uint8_t)trackingState);
+
+            CommandBuilder command(builder);
+            command.add_address(Address::Address_OK);
+            command.add_localtime(uptime);
+            command.add_available(&available);
+            builder.Finish(command.Finish());
+            Save();
+        }
+
+    } else if (calibrated && std::strcmp(address, "/VMC/Ext/Root/Pos") == 0) {
         const auto name = (arg++)->AsStringUnchecked();
 
         const auto px = (arg++)->AsFloatUnchecked();
@@ -83,7 +90,7 @@ void VmcPacketListener::ProcessMessage(const osc::ReceivedMessage& m,
         command.add_name(fbname);
         builder.Finish(command.Finish());
         Save();
-    } else if (std::strcmp(address, "/VMC/Ext/Bone/Pos") == 0) {
+    } else if (calibrated && std::strcmp(address, "/VMC/Ext/Bone/Pos") == 0) {
 
         const auto px = (arg++)->AsFloatUnchecked();
         const auto py = (arg++)->AsFloatUnchecked();
@@ -104,11 +111,11 @@ void VmcPacketListener::ProcessMessage(const osc::ReceivedMessage& m,
         command.add_q(&q);
         builder.Finish(command.Finish());
         Save();
-    } else if (std::strcmp(address, "/VMC/Ext/Blend/Val") == 0) {
-        const auto name  = (arg++)->AsStringUnchecked();
+    } else if (calibrated && std::strcmp(address, "/VMC/Ext/Blend/Val") == 0) {
+        const auto name = (arg++)->AsStringUnchecked();
         const auto value = (arg++)->AsFloatUnchecked();
         blendshapes.emplace(name, value);
-    } else if (std::strcmp(address, "/VMC/Ext/Blend/Apply") == 0 && blendshapes.size() > 0) {
+    } else if (calibrated && std::strcmp(address, "/VMC/Ext/Blend/Apply") == 0 && blendshapes.size() > 0) {
 
         std::vector<flatbuffers::Offset<Value>> values;
         for (auto v : blendshapes) {
@@ -136,7 +143,7 @@ void VmcPacketListener::Save()
         fout.write(reinterpret_cast<const char*>(&size), 4);
         fout.write(reinterpret_cast<const char*>(buffer), size);
 
-        builder.Clear();    
+        builder.Clear();
     }
 }
 

@@ -31,4 +31,5 @@ private:
     flatbuffers::FlatBufferBuilder builder;
     std::chrono::steady_clock::time_point lasttime;
     float uptime;
+    bool calibrated;
 };
