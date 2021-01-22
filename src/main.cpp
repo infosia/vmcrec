@@ -6,23 +6,6 @@
 #include <fstream>
 #include <thread>
 
-static void send(const VMC::Marionette::Command* command, uint32_t port)
-{
-    UdpTransmitSocket transmitSocket(IpEndpointName("127.0.0.1", port));
-
-    const auto address = command->address();
-
-    if (address == VMC::Marionette::Address_OK) {
-        auto state = command->available();
-        char buffer[1024];
-        osc::OutboundPacketStream p(buffer, 6144);
-        p << osc::BeginBundleImmediate
-          << osc::BeginMessage("/VMC/Ext/OK") << state->loaded() << state->calibrationState() << state->calibrationMode() << state->trackingState() << osc::EndMessage
-          << osc::EndBundle;
-        transmitSocket.Send(p.Data(), p.Size());
-    }
-}
-
 int main(int argc, char* argv[])
 {
     CLI::App app { "vmcrec: Record & replay VMC motions" };
@@ -60,12 +43,12 @@ int main(int argc, char* argv[])
 
             count++;
 
-            uint8_t* buffer = new uint8_t[bufferSize];
+            uint8_t* buffer = (uint8_t*)malloc(bufferSize);
             fin.read(reinterpret_cast<char*>(buffer), bufferSize);
             auto verifier = flatbuffers::Verifier(buffer, bufferSize);
             if (!VMC::Marionette::VerifyCommandBuffer(verifier)) {
                 std::cout << "[ERROR] Wrong buffer at " << fin.tellg() << ". exiting." << std::endl;
-                delete buffer;
+                free(buffer);
                 break;
             }
             const VMC::Marionette::Command* command = VMC::Marionette::GetCommand(buffer);
@@ -78,9 +61,9 @@ int main(int argc, char* argv[])
                 std::this_thread::sleep_for(std::chrono::milliseconds(dt));
             }
 
-            send(command, port);
+            // TODO
 
-            delete[] buffer;
+            free(buffer);
         }
 
         std::cout << "[INFO] Total: " << count << " records" << std::endl;
