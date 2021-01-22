@@ -15,9 +15,27 @@ static void printCommand(const VMC::Marionette::Command* command)
         auto state = command->available();
 
         uint32_t loaded = state->loaded();
-        uint32_t calibrationState =  state->calibrationState();
+        uint32_t calibrationState = state->calibrationState();
 
         std::cout << "/VMC/Ext/OK " << loaded << " " << calibrationState << std::endl;
+    } else if (address == VMC::Marionette::Address_Bone_Pos) {
+        auto p = command->p();
+        auto q = command->q();
+        auto name = command->name();
+
+        auto px = p->x();
+        auto py = p->y();
+        auto pz = p->z();
+
+        auto qx = q->x();
+        auto qy = q->y();
+        auto qz = q->z();
+        auto qw = q->w();
+
+        std::cout << "/VMC/Ext/Bone/Pos " << name->c_str()
+                  << " (" << px << "," << py << "," << pz << ")"
+                  << " (" << qx << "," << qy << "," << qz << "," << qw << ")"
+                  << std::endl;
     }
 }
 

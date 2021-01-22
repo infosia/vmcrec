@@ -91,6 +91,7 @@ void VmcPacketListener::ProcessMessage(const osc::ReceivedMessage& m,
         builder.Finish(command.Finish());
         Save();
     } else if (calibrated && std::strcmp(address, "/VMC/Ext/Bone/Pos") == 0) {
+        const auto name = (arg++)->AsStringUnchecked();
 
         const auto px = (arg++)->AsFloatUnchecked();
         const auto py = (arg++)->AsFloatUnchecked();
@@ -103,12 +104,14 @@ void VmcPacketListener::ProcessMessage(const osc::ReceivedMessage& m,
 
         const auto p = Vec3(px, py, pz);
         const auto q = Vec4(qx, qy, qz, qw);
+        auto fbname = builder.CreateString(name);
 
         CommandBuilder command(builder);
         command.add_address(Address::Address_Bone_Pos);
         command.add_localtime(uptime);
         command.add_p(&p);
         command.add_q(&q);
+        command.add_name(fbname);
         builder.Finish(command.Finish());
         Save();
     } else if (calibrated && std::strcmp(address, "/VMC/Ext/Blend/Val") == 0) {
