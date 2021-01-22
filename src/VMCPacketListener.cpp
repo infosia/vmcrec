@@ -32,8 +32,13 @@ void VmcPacketListener::ProcessMessage(const osc::ReceivedMessage& m,
     const auto address = m.AddressPattern();
     if (std::strcmp(address, "/VMC/Ext/OK") == 0) {
 
-        auto available = Available((int8_t)(arg++)->AsInt32Unchecked(), (int8_t)(arg++)->AsInt32Unchecked(),
-            (int8_t)(arg++)->AsInt32Unchecked(), (int8_t)(arg++)->AsInt32Unchecked());
+        const auto loaded = (arg++)->AsInt32Unchecked();
+        const auto calibrationState = (arg++)->AsInt32Unchecked();
+        const auto calibrationMode = (arg++)->AsInt32Unchecked();
+        const auto trackingState = (arg++)->AsInt32Unchecked();
+
+        auto available = Available((uint8_t)loaded, (uint8_t)calibrationState,
+            (uint8_t)calibrationMode, (uint8_t)trackingState);
 
         CommandBuilder command(builder);
         command.add_address(Address::Address_OK);
@@ -44,10 +49,27 @@ void VmcPacketListener::ProcessMessage(const osc::ReceivedMessage& m,
     } else if (std::strcmp(address, "/VMC/Ext/Root/Pos") == 0) {
         const auto name = (arg++)->AsStringUnchecked();
 
-        auto p = Vec3((arg++)->AsFloatUnchecked(), (arg++)->AsFloatUnchecked(), (arg++)->AsFloatUnchecked());
-        auto q = Vec4((arg++)->AsFloatUnchecked(), (arg++)->AsFloatUnchecked(), (arg++)->AsFloatUnchecked(), (arg++)->AsFloatUnchecked());
-        auto s = Vec3((arg++)->AsFloatUnchecked(), (arg++)->AsFloatUnchecked(), (arg++)->AsFloatUnchecked());
-        auto o = Vec3((arg++)->AsFloatUnchecked(), (arg++)->AsFloatUnchecked(), (arg++)->AsFloatUnchecked());
+        const auto px = (arg++)->AsFloatUnchecked();
+        const auto py = (arg++)->AsFloatUnchecked();
+        const auto pz = (arg++)->AsFloatUnchecked();
+
+        const auto qx = (arg++)->AsFloatUnchecked();
+        const auto qy = (arg++)->AsFloatUnchecked();
+        const auto qz = (arg++)->AsFloatUnchecked();
+        const auto qw = (arg++)->AsFloatUnchecked();
+
+        const auto sx = (arg++)->AsFloatUnchecked();
+        const auto sy = (arg++)->AsFloatUnchecked();
+        const auto sz = (arg++)->AsFloatUnchecked();
+
+        const auto ox = (arg++)->AsFloatUnchecked();
+        const auto oy = (arg++)->AsFloatUnchecked();
+        const auto oz = (arg++)->AsFloatUnchecked();
+
+        const auto p = Vec3(px, py, pz);
+        const auto q = Vec4(qx, qy, qz, qw);
+        const auto s = Vec3(sx, sy, sz);
+        const auto o = Vec3(ox, oy, oz);
 
         auto fbname = builder.CreateString(name);
 
@@ -62,8 +84,19 @@ void VmcPacketListener::ProcessMessage(const osc::ReceivedMessage& m,
         builder.Finish(command.Finish());
         Save();
     } else if (std::strcmp(address, "/VMC/Ext/Bone/Pos") == 0) {
-        auto p = Vec3((arg++)->AsFloatUnchecked(), (arg++)->AsFloatUnchecked(), (arg++)->AsFloatUnchecked());
-        auto q = Vec4((arg++)->AsFloatUnchecked(), (arg++)->AsFloatUnchecked(), (arg++)->AsFloatUnchecked(), (arg++)->AsFloatUnchecked());
+
+        const auto px = (arg++)->AsFloatUnchecked();
+        const auto py = (arg++)->AsFloatUnchecked();
+        const auto pz = (arg++)->AsFloatUnchecked();
+
+        const auto qx = (arg++)->AsFloatUnchecked();
+        const auto qy = (arg++)->AsFloatUnchecked();
+        const auto qz = (arg++)->AsFloatUnchecked();
+        const auto qw = (arg++)->AsFloatUnchecked();
+
+        const auto p = Vec3(px, py, pz);
+        const auto q = Vec4(qx, qy, qz, qw);
+
         CommandBuilder command(builder);
         command.add_address(Address::Address_Bone_Pos);
         command.add_localtime(uptime);
@@ -72,7 +105,9 @@ void VmcPacketListener::ProcessMessage(const osc::ReceivedMessage& m,
         builder.Finish(command.Finish());
         Save();
     } else if (std::strcmp(address, "/VMC/Ext/Blend/Val") == 0) {
-        blendshapes.emplace((arg++)->AsStringUnchecked(), (arg++)->AsFloatUnchecked());
+        const auto name  = (arg++)->AsStringUnchecked();
+        const auto value = (arg++)->AsFloatUnchecked();
+        blendshapes.emplace(name, value);
     } else if (std::strcmp(address, "/VMC/Ext/Blend/Apply") == 0 && blendshapes.size() > 0) {
 
         std::vector<flatbuffers::Offset<Value>> values;

@@ -6,6 +6,21 @@
 #include <fstream>
 #include <thread>
 
+static void printCommand(const VMC::Marionette::Command* command)
+{
+    // Sample code
+    const auto address = command->address();
+
+    if (address == VMC::Marionette::Address_OK) {
+        auto state = command->available();
+
+        uint32_t loaded = state->loaded();
+        uint32_t calibrationState =  state->calibrationState();
+
+        std::cout << "/VMC/Ext/OK " << loaded << " " << calibrationState << std::endl;
+    }
+}
+
 int main(int argc, char* argv[])
 {
     CLI::App app { "vmcrec: Record & replay VMC motions" };
@@ -57,11 +72,7 @@ int main(int argc, char* argv[])
             const auto dt = static_cast<uint32_t>((localtime - lasttime) * 1000);
             lasttime = localtime;
 
-            if (dt > 0) {
-                std::this_thread::sleep_for(std::chrono::milliseconds(dt));
-            }
-
-            // TODO
+            printCommand(command);
 
             free(buffer);
         }
