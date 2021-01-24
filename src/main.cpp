@@ -18,8 +18,13 @@ static void printCommand(const VMC::Marionette::Command* command)
         uint32_t calibrationState = state->calibrationState();
 
         std::cout << "/VMC/Ext/OK " << loaded << " " << calibrationState << std::endl;
+    } else if (address == VMC::Marionette::Address_Bend_Apply) {
+        std::cout << "/VMC/Ext/Blend/Apply " << std::endl;
     } else if (address == VMC::Marionette::Address_Bone_Pos) {
+        auto bones = command->bones();
+        auto boneCount = bones->size();
 
+        std::cout << "/VMC/Ext/Bone/Pos: Total " << boneCount << " bones" << std::endl;
     }
 }
 

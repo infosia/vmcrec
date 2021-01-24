@@ -73,7 +73,7 @@ void VmcPacketListener::ProcessMessage(const osc::ReceivedMessage& m,
 
         root = { { px, py, pz }, { qx, qy, qz, qw } };
     } else if (calibrated && std::strcmp(address, "/VMC/Ext/Bone/Pos") == 0) {
-        const auto name = (arg++)->AsStringUnchecked();
+        std::string name = (arg++)->AsStringUnchecked();
 
         const auto px = (arg++)->AsFloatUnchecked();
         const auto py = (arg++)->AsFloatUnchecked();
@@ -84,10 +84,13 @@ void VmcPacketListener::ProcessMessage(const osc::ReceivedMessage& m,
         const auto qz = (arg++)->AsFloatUnchecked();
         const auto qw = (arg++)->AsFloatUnchecked();
 
-        cgltf_vrm_humanoid_bone_bone_v0_0 bone;
-        if (select_cgltf_vrm_humanoid_bone_bone_v0_0(name, &bone)) {
-            BonePos value = { { px, py, pz }, { qx, qy, qz, qw } };
-            bones.at(bone) = value;
+        if (!name.empty()) {
+            name[0] = std::tolower(name[0]);
+            cgltf_vrm_humanoid_bone_bone_v0_0 bone;
+            if (select_cgltf_vrm_humanoid_bone_bone_v0_0(name.c_str(), &bone)) {
+                BonePos value = { { px, py, pz }, { qx, qy, qz, qw } };
+                bones[bone] = value;
+            }        
         }
     } else if (calibrated && std::strcmp(address, "/VMC/Ext/Blend/Val") == 0) {
         const auto name = (arg++)->AsStringUnchecked();
