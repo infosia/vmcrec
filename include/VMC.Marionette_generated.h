@@ -18,22 +18,27 @@ struct Vec4;
 struct Command;
 struct CommandBuilder;
 
+struct Bone;
+struct BoneBuilder;
+
 struct Value;
 struct ValueBuilder;
 
 enum Address {
   Address_OK = 0,
-  Address_Root_Pos = 1,
-  Address_Bone_Pos = 2,
-  Address_Blend_Val = 3,
-  Address_Bend_Apply = 4,
+  Address_VRM = 1,
+  Address_Root_Pos = 2,
+  Address_Bone_Pos = 3,
+  Address_Blend_Val = 4,
+  Address_Bend_Apply = 5,
   Address_MIN = Address_OK,
   Address_MAX = Address_Bend_Apply
 };
 
-inline const Address (&EnumValuesAddress())[5] {
+inline const Address (&EnumValuesAddress())[6] {
   static const Address values[] = {
     Address_OK,
+    Address_VRM,
     Address_Root_Pos,
     Address_Bone_Pos,
     Address_Blend_Val,
@@ -43,8 +48,9 @@ inline const Address (&EnumValuesAddress())[5] {
 }
 
 inline const char * const *EnumNamesAddress() {
-  static const char * const names[6] = {
+  static const char * const names[7] = {
     "OK",
+    "VRM",
     "Root_Pos",
     "Bone_Pos",
     "Blend_Val",
@@ -156,13 +162,10 @@ struct Command FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
     VT_ADDRESS = 4,
     VT_LOCALTIME = 6,
-    VT_P = 8,
-    VT_Q = 10,
-    VT_S = 12,
-    VT_O = 14,
-    VT_AVAILABLE = 16,
-    VT_VALUES = 18,
-    VT_NAME = 20
+    VT_AVAILABLE = 8,
+    VT_BONES = 10,
+    VT_VALUES = 12,
+    VT_NAMES = 14
   };
   VMC::Marionette::Address address() const {
     return static_cast<VMC::Marionette::Address>(GetField<int8_t>(VT_ADDRESS, 0));
@@ -170,41 +173,32 @@ struct Command FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   float localtime() const {
     return GetField<float>(VT_LOCALTIME, 0.0f);
   }
-  const VMC::Marionette::Vec3 *p() const {
-    return GetStruct<const VMC::Marionette::Vec3 *>(VT_P);
-  }
-  const VMC::Marionette::Vec4 *q() const {
-    return GetStruct<const VMC::Marionette::Vec4 *>(VT_Q);
-  }
-  const VMC::Marionette::Vec3 *s() const {
-    return GetStruct<const VMC::Marionette::Vec3 *>(VT_S);
-  }
-  const VMC::Marionette::Vec3 *o() const {
-    return GetStruct<const VMC::Marionette::Vec3 *>(VT_O);
-  }
   const VMC::Marionette::Available *available() const {
     return GetStruct<const VMC::Marionette::Available *>(VT_AVAILABLE);
+  }
+  const flatbuffers::Vector<flatbuffers::Offset<VMC::Marionette::Bone>> *bones() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<VMC::Marionette::Bone>> *>(VT_BONES);
   }
   const flatbuffers::Vector<flatbuffers::Offset<VMC::Marionette::Value>> *values() const {
     return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<VMC::Marionette::Value>> *>(VT_VALUES);
   }
-  const flatbuffers::String *name() const {
-    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *names() const {
+    return GetPointer<const flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>> *>(VT_NAMES);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
            VerifyField<int8_t>(verifier, VT_ADDRESS) &&
            VerifyField<float>(verifier, VT_LOCALTIME) &&
-           VerifyField<VMC::Marionette::Vec3>(verifier, VT_P) &&
-           VerifyField<VMC::Marionette::Vec4>(verifier, VT_Q) &&
-           VerifyField<VMC::Marionette::Vec3>(verifier, VT_S) &&
-           VerifyField<VMC::Marionette::Vec3>(verifier, VT_O) &&
            VerifyField<VMC::Marionette::Available>(verifier, VT_AVAILABLE) &&
+           VerifyOffset(verifier, VT_BONES) &&
+           verifier.VerifyVector(bones()) &&
+           verifier.VerifyVectorOfTables(bones()) &&
            VerifyOffset(verifier, VT_VALUES) &&
            verifier.VerifyVector(values()) &&
            verifier.VerifyVectorOfTables(values()) &&
-           VerifyOffset(verifier, VT_NAME) &&
-           verifier.VerifyString(name()) &&
+           VerifyOffset(verifier, VT_NAMES) &&
+           verifier.VerifyVector(names()) &&
+           verifier.VerifyVectorOfStrings(names()) &&
            verifier.EndTable();
   }
 };
@@ -219,26 +213,17 @@ struct CommandBuilder {
   void add_localtime(float localtime) {
     fbb_.AddElement<float>(Command::VT_LOCALTIME, localtime, 0.0f);
   }
-  void add_p(const VMC::Marionette::Vec3 *p) {
-    fbb_.AddStruct(Command::VT_P, p);
-  }
-  void add_q(const VMC::Marionette::Vec4 *q) {
-    fbb_.AddStruct(Command::VT_Q, q);
-  }
-  void add_s(const VMC::Marionette::Vec3 *s) {
-    fbb_.AddStruct(Command::VT_S, s);
-  }
-  void add_o(const VMC::Marionette::Vec3 *o) {
-    fbb_.AddStruct(Command::VT_O, o);
-  }
   void add_available(const VMC::Marionette::Available *available) {
     fbb_.AddStruct(Command::VT_AVAILABLE, available);
+  }
+  void add_bones(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<VMC::Marionette::Bone>>> bones) {
+    fbb_.AddOffset(Command::VT_BONES, bones);
   }
   void add_values(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<VMC::Marionette::Value>>> values) {
     fbb_.AddOffset(Command::VT_VALUES, values);
   }
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(Command::VT_NAME, name);
+  void add_names(flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> names) {
+    fbb_.AddOffset(Command::VT_NAMES, names);
   }
   explicit CommandBuilder(flatbuffers::FlatBufferBuilder &_fbb)
         : fbb_(_fbb) {
@@ -256,21 +241,15 @@ inline flatbuffers::Offset<Command> CreateCommand(
     flatbuffers::FlatBufferBuilder &_fbb,
     VMC::Marionette::Address address = VMC::Marionette::Address_OK,
     float localtime = 0.0f,
-    const VMC::Marionette::Vec3 *p = 0,
-    const VMC::Marionette::Vec4 *q = 0,
-    const VMC::Marionette::Vec3 *s = 0,
-    const VMC::Marionette::Vec3 *o = 0,
     const VMC::Marionette::Available *available = 0,
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<VMC::Marionette::Bone>>> bones = 0,
     flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<VMC::Marionette::Value>>> values = 0,
-    flatbuffers::Offset<flatbuffers::String> name = 0) {
+    flatbuffers::Offset<flatbuffers::Vector<flatbuffers::Offset<flatbuffers::String>>> names = 0) {
   CommandBuilder builder_(_fbb);
-  builder_.add_name(name);
+  builder_.add_names(names);
   builder_.add_values(values);
+  builder_.add_bones(bones);
   builder_.add_available(available);
-  builder_.add_o(o);
-  builder_.add_s(s);
-  builder_.add_q(q);
-  builder_.add_p(p);
   builder_.add_localtime(localtime);
   builder_.add_address(address);
   return builder_.Finish();
@@ -280,26 +259,83 @@ inline flatbuffers::Offset<Command> CreateCommandDirect(
     flatbuffers::FlatBufferBuilder &_fbb,
     VMC::Marionette::Address address = VMC::Marionette::Address_OK,
     float localtime = 0.0f,
-    const VMC::Marionette::Vec3 *p = 0,
-    const VMC::Marionette::Vec4 *q = 0,
-    const VMC::Marionette::Vec3 *s = 0,
-    const VMC::Marionette::Vec3 *o = 0,
     const VMC::Marionette::Available *available = 0,
+    const std::vector<flatbuffers::Offset<VMC::Marionette::Bone>> *bones = nullptr,
     const std::vector<flatbuffers::Offset<VMC::Marionette::Value>> *values = nullptr,
-    const char *name = nullptr) {
+    const std::vector<flatbuffers::Offset<flatbuffers::String>> *names = nullptr) {
+  auto bones__ = bones ? _fbb.CreateVector<flatbuffers::Offset<VMC::Marionette::Bone>>(*bones) : 0;
   auto values__ = values ? _fbb.CreateVector<flatbuffers::Offset<VMC::Marionette::Value>>(*values) : 0;
-  auto name__ = name ? _fbb.CreateString(name) : 0;
+  auto names__ = names ? _fbb.CreateVector<flatbuffers::Offset<flatbuffers::String>>(*names) : 0;
   return VMC::Marionette::CreateCommand(
       _fbb,
       address,
       localtime,
-      p,
-      q,
-      s,
-      o,
       available,
+      bones__,
       values__,
-      name__);
+      names__);
+}
+
+struct Bone FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
+  typedef BoneBuilder Builder;
+  enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
+    VT_I = 4,
+    VT_P = 6,
+    VT_Q = 8
+  };
+  int8_t i() const {
+    return GetField<int8_t>(VT_I, 0);
+  }
+  const VMC::Marionette::Vec3 *p() const {
+    return GetStruct<const VMC::Marionette::Vec3 *>(VT_P);
+  }
+  const VMC::Marionette::Vec4 *q() const {
+    return GetStruct<const VMC::Marionette::Vec4 *>(VT_Q);
+  }
+  bool Verify(flatbuffers::Verifier &verifier) const {
+    return VerifyTableStart(verifier) &&
+           VerifyField<int8_t>(verifier, VT_I) &&
+           VerifyField<VMC::Marionette::Vec3>(verifier, VT_P) &&
+           VerifyField<VMC::Marionette::Vec4>(verifier, VT_Q) &&
+           verifier.EndTable();
+  }
+};
+
+struct BoneBuilder {
+  typedef Bone Table;
+  flatbuffers::FlatBufferBuilder &fbb_;
+  flatbuffers::uoffset_t start_;
+  void add_i(int8_t i) {
+    fbb_.AddElement<int8_t>(Bone::VT_I, i, 0);
+  }
+  void add_p(const VMC::Marionette::Vec3 *p) {
+    fbb_.AddStruct(Bone::VT_P, p);
+  }
+  void add_q(const VMC::Marionette::Vec4 *q) {
+    fbb_.AddStruct(Bone::VT_Q, q);
+  }
+  explicit BoneBuilder(flatbuffers::FlatBufferBuilder &_fbb)
+        : fbb_(_fbb) {
+    start_ = fbb_.StartTable();
+  }
+  BoneBuilder &operator=(const BoneBuilder &);
+  flatbuffers::Offset<Bone> Finish() {
+    const auto end = fbb_.EndTable(start_);
+    auto o = flatbuffers::Offset<Bone>(end);
+    return o;
+  }
+};
+
+inline flatbuffers::Offset<Bone> CreateBone(
+    flatbuffers::FlatBufferBuilder &_fbb,
+    int8_t i = 0,
+    const VMC::Marionette::Vec3 *p = 0,
+    const VMC::Marionette::Vec4 *q = 0) {
+  BoneBuilder builder_(_fbb);
+  builder_.add_q(q);
+  builder_.add_p(p);
+  builder_.add_i(i);
+  return builder_.Finish();
 }
 
 struct Value FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {

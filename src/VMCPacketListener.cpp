@@ -1,8 +1,13 @@
 #include "VMCPacketListener.hpp"
 
+#define CGLTF_IMPLEMENTATION
+#define CGLTF_VRM_v0_0
+#define CGLTF_VRM_v0_0_IMPLEMENTATION
+#include "cgltf.h"
+
 using namespace VMC::Marionette;
 
-VmcPacketListener::VmcPacketListener(std::string& output)
+VmcPacketListener::VmcPacketListener(std::string& output, uint8_t fps)
     : OscPacketListener()
     , output(output)
     , online(true)
@@ -11,6 +16,8 @@ VmcPacketListener::VmcPacketListener(std::string& output)
     , lasttime(std::chrono::steady_clock::now())
     , uptime(0)
     , calibrated(false)
+    , blendshapesChanged(false)
+    , interval(std::chrono::milliseconds((1000 / fps)))
 {
     fout.open(output.c_str(), std::ios::out | std::ios::app | std::ios::binary);
 }
@@ -52,9 +59,8 @@ void VmcPacketListener::ProcessMessage(const osc::ReceivedMessage& m,
             builder.Finish(command.Finish());
             Save();
         }
-
     } else if (calibrated && std::strcmp(address, "/VMC/Ext/Root/Pos") == 0) {
-        const auto name = (arg++)->AsStringUnchecked();
+		arg++; // ignore root bone name
 
         const auto px = (arg++)->AsFloatUnchecked();
         const auto py = (arg++)->AsFloatUnchecked();
@@ -65,31 +71,7 @@ void VmcPacketListener::ProcessMessage(const osc::ReceivedMessage& m,
         const auto qz = (arg++)->AsFloatUnchecked();
         const auto qw = (arg++)->AsFloatUnchecked();
 
-        const auto sx = (arg++)->AsFloatUnchecked();
-        const auto sy = (arg++)->AsFloatUnchecked();
-        const auto sz = (arg++)->AsFloatUnchecked();
-
-        const auto ox = (arg++)->AsFloatUnchecked();
-        const auto oy = (arg++)->AsFloatUnchecked();
-        const auto oz = (arg++)->AsFloatUnchecked();
-
-        const auto p = Vec3(px, py, pz);
-        const auto q = Vec4(qx, qy, qz, qw);
-        const auto s = Vec3(sx, sy, sz);
-        const auto o = Vec3(ox, oy, oz);
-
-        auto fbname = builder.CreateString(name);
-
-        CommandBuilder command(builder);
-        command.add_address(Address::Address_Root_Pos);
-        command.add_localtime(uptime);
-        command.add_p(&p);
-        command.add_q(&q);
-        command.add_s(&s);
-        command.add_o(&o);
-        command.add_name(fbname);
-        builder.Finish(command.Finish());
-        Save();
+        root = { { px, py, pz }, { qx, qy, qz, qw } };
     } else if (calibrated && std::strcmp(address, "/VMC/Ext/Bone/Pos") == 0) {
         const auto name = (arg++)->AsStringUnchecked();
 
@@ -102,38 +84,62 @@ void VmcPacketListener::ProcessMessage(const osc::ReceivedMessage& m,
         const auto qz = (arg++)->AsFloatUnchecked();
         const auto qw = (arg++)->AsFloatUnchecked();
 
-        const auto p = Vec3(px, py, pz);
-        const auto q = Vec4(qx, qy, qz, qw);
-        auto fbname = builder.CreateString(name);
-
-        CommandBuilder command(builder);
-        command.add_address(Address::Address_Bone_Pos);
-        command.add_localtime(uptime);
-        command.add_p(&p);
-        command.add_q(&q);
-        command.add_name(fbname);
-        builder.Finish(command.Finish());
-        Save();
+        cgltf_vrm_humanoid_bone_bone_v0_0 bone;
+        if (select_cgltf_vrm_humanoid_bone_bone_v0_0(name, &bone)) {
+            BonePos value = { { px, py, pz }, { qx, qy, qz, qw } };
+            bones.at(bone) = value;
+        }
     } else if (calibrated && std::strcmp(address, "/VMC/Ext/Blend/Val") == 0) {
         const auto name = (arg++)->AsStringUnchecked();
         const auto value = (arg++)->AsFloatUnchecked();
-        blendshapes.emplace(name, value);
+        blendshapes[name] = value;
     } else if (calibrated && std::strcmp(address, "/VMC/Ext/Blend/Apply") == 0 && blendshapes.size() > 0) {
+        blendshapesChanged = true;
+    }
 
-        std::vector<flatbuffers::Offset<Value>> values;
-        for (auto v : blendshapes) {
-            values.push_back(CreateValueDirect(builder, v.first.c_str(), v.second));
+    if (delta > interval) {
+        // Bone transform (including root)
+        if (bones.size()) {
+            std::vector<flatbuffers::Offset<VMC::Marionette::Bone>> fbbones;
+
+            const auto rootp = Vec3(root.p[0], root.p[1], root.p[2]);
+            const auto rootq = Vec4(root.q[0], root.q[1], root.q[2], root.q[3]);
+            fbbones.push_back(CreateBone(builder, (uint8_t)255 /* root */, &rootp, &rootq));
+
+            for (const auto &bone : bones) {
+                const auto pos = bone.second;
+                const auto p = Vec3(pos.p[0], pos.p[1], pos.p[2]);
+                const auto q = Vec4(pos.q[0], pos.q[1], pos.q[2], pos.q[3]);
+                fbbones.push_back(CreateBone(builder, (int8_t)bone.first, &p, &q));
+            }
+            auto fbvec = builder.CreateVector(fbbones);
+
+            CommandBuilder command(builder);
+            command.add_address(Address::Address_Bone_Pos);
+            command.add_localtime(uptime);
+            command.add_bones(fbvec);
+            builder.Finish(command.Finish());
+            Save();
         }
-        auto fbvec = builder.CreateVector(values);
 
-        CommandBuilder command(builder);
-        command.add_address(Address::Address_Bend_Apply);
-        command.add_localtime(uptime);
-        command.add_values(fbvec);
-        builder.Finish(command.Finish());
-        Save();
+        // Blendshape
+        if (blendshapesChanged) {
+            std::vector<flatbuffers::Offset<VMC::Marionette::Value>> values;
+            for (auto v : blendshapes) {
+                values.push_back(CreateValueDirect(builder, v.first.c_str(), v.second));
+            }
+            auto fbvec = builder.CreateVector(values);
 
-        blendshapes.clear();
+            CommandBuilder command(builder);
+            command.add_address(Address::Address_Bend_Apply);
+            command.add_localtime(uptime);
+            command.add_values(fbvec);
+            builder.Finish(command.Finish());
+            Save();
+
+            blendshapes.clear();
+            blendshapesChanged = false;
+        }
     }
 }
 

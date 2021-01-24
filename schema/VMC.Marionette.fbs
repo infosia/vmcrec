@@ -1,5 +1,5 @@
 namespace VMC.Marionette;
-enum Address:byte { OK, Root_Pos, Bone_Pos, Blend_Val, Bend_Apply }
+enum Address:byte { OK, VRM, Root_Pos, Bone_Pos, Blend_Val, Bend_Apply }
 struct Available {
   loaded:byte;
   calibrationState:byte;
@@ -20,13 +20,15 @@ struct Vec4 {
 table Command {
   address:Address;
   localtime:float;
+  available:Available;
+  bones:[Bone];
+  values:[Value];
+  names:[string];
+}
+table Bone {
+  i:byte;
   p:Vec3;
   q:Vec4;
-  s:Vec3;
-  o:Vec3;
-  available:Available;
-  values:[Value];
-  name:string;
 }
 table Value {
   name:string;

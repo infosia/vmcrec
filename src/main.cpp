@@ -19,23 +19,7 @@ static void printCommand(const VMC::Marionette::Command* command)
 
         std::cout << "/VMC/Ext/OK " << loaded << " " << calibrationState << std::endl;
     } else if (address == VMC::Marionette::Address_Bone_Pos) {
-        auto p = command->p();
-        auto q = command->q();
-        auto name = command->name();
 
-        auto px = p->x();
-        auto py = p->y();
-        auto pz = p->z();
-
-        auto qx = q->x();
-        auto qy = q->y();
-        auto qz = q->z();
-        auto qw = q->w();
-
-        std::cout << "/VMC/Ext/Bone/Pos " << name->c_str()
-                  << " (" << px << "," << py << "," << pz << ")"
-                  << " (" << qx << "," << qy << "," << qz << "," << qw << ")"
-                  << std::endl;
     }
 }
 
@@ -45,6 +29,9 @@ int main(int argc, char* argv[])
 
     std::uint16_t port = 39539;
     app.add_option<std::uint16_t>("-p,--port", port, "port number to bind (39539 by default)");
+
+	std::uint8_t fps = 60;
+	app.add_option("-s,--fps", fps, "frame per second");
 
     std::string output;
     app.add_option("-o,--output", output, "output file name");
@@ -103,7 +90,7 @@ int main(int argc, char* argv[])
             return 1;
         }
 
-        VmcPacketListener listener(output);
+        VmcPacketListener listener(output, fps);
         UdpListeningReceiveSocket s(
             IpEndpointName(IpEndpointName::ANY_ADDRESS, port),
             &listener);
