@@ -5,6 +5,8 @@
 #define CGLTF_VRM_v0_0_IMPLEMENTATION
 #include "cgltf.h"
 
+#define ROOT_BONE_ID 255
+
 using namespace VMC::Marionette;
 
 VmcPacketListener::VmcPacketListener(std::string& output, uint8_t fps)
@@ -85,7 +87,7 @@ void VmcPacketListener::ProcessMessage(const osc::ReceivedMessage& m,
         const auto qw = (arg++)->AsFloatUnchecked();
 
         if (!name.empty()) {
-            name[0] = std::tolower(name[0]);
+            name[0] = (char)std::tolower(name[0]);
             cgltf_vrm_humanoid_bone_bone_v0_0 bone;
             if (select_cgltf_vrm_humanoid_bone_bone_v0_0(name.c_str(), &bone)) {
                 BonePos value = { { px, py, pz }, { qx, qy, qz, qw } };
@@ -107,7 +109,7 @@ void VmcPacketListener::ProcessMessage(const osc::ReceivedMessage& m,
 
             const auto rootp = Vec3(root.p[0], root.p[1], root.p[2]);
             const auto rootq = Vec4(root.q[0], root.q[1], root.q[2], root.q[3]);
-            fbbones.push_back(CreateBone(builder, (uint8_t)255 /* root */, &rootp, &rootq));
+            fbbones.push_back(CreateBone(builder, (uint8_t)ROOT_BONE_ID, &rootp, &rootq));
 
             for (const auto &bone : bones) {
                 const auto pos = bone.second;
