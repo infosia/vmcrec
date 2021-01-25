@@ -41,6 +41,7 @@ private:
     std::chrono::milliseconds interval;
     std::ofstream fout;
     std::string output;
+    uint8_t blendCount;
 
     bool online;
     bool calibrated;

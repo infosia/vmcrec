@@ -11,6 +11,7 @@ using namespace VMC::Marionette;
 
 VmcPacketListener::VmcPacketListener(std::string& output, uint8_t fps)
     : OscPacketListener()
+    , root()
     , output(output)
     , online(true)
     , builder(1024) /* bytes */
@@ -20,6 +21,7 @@ VmcPacketListener::VmcPacketListener(std::string& output, uint8_t fps)
     , calibrated(false)
     , blendshapesChanged(false)
     , interval(std::chrono::milliseconds((1000 / fps)))
+    , blendCount(0)
 {
     fout.open(output.c_str(), std::ios::out | std::ios::app | std::ios::binary);
 }
@@ -102,7 +104,13 @@ void VmcPacketListener::ProcessMessage(const osc::ReceivedMessage& m,
             const auto index = (uint8_t)blendnames.size();
             blendnames.emplace(name, index);
             blendshapes[index] = value;
+        } else {
+            blendshapes[found->second] = value;        
+        }
+    } else if (calibrated && std::strcmp(address, "/VMC/Ext/Blend/Apply") == 0 && blendshapes.size() > 0) {
+        blendshapesChanged = true;
 
+        if (blendCount != blendnames.size()) {
             std::vector<flatbuffers::Offset<flatbuffers::String>> names;
             names.resize(blendnames.size());
             for (auto v : blendnames) {
@@ -116,11 +124,9 @@ void VmcPacketListener::ProcessMessage(const osc::ReceivedMessage& m,
             command.add_names(fbvec);
             builder.Finish(command.Finish());
             Save();
-        } else {
-            blendshapes[found->second] = value;        
+
+            blendCount = (uint8_t)blendnames.size();
         }
-    } else if (calibrated && std::strcmp(address, "/VMC/Ext/Blend/Apply") == 0 && blendshapes.size() > 0) {
-        blendshapesChanged = true;
     }
 
     if (delta > interval) {

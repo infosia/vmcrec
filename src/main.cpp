@@ -18,17 +18,13 @@ static void printCommand(const VMC::Marionette::Command* command)
         uint32_t calibrationState = state->calibrationState();
 
         std::cout << "/VMC/Ext/OK " << loaded << " " << calibrationState << std::endl;
+
+    } else if (address == VMC::Marionette::Address_Blend_Names) {
+        const auto names = command->names();
+        std::cout << "Blendshapes: " << names->size() << std::endl;
     } else if (address == VMC::Marionette::Address_Bend_Apply) {
-        std::cout << "/VMC/Ext/Blend/Apply ";
         const auto values = command->values();
-        const auto size = values->size();
-
-        for (flatbuffers::uoffset_t i = 0; i < size; i++) {
-            auto index = values->Get(i)->index();
-            std::cout << (uint32_t)index << " ";
-        }
-
-        std::cout << std::endl;
+        std::cout << "/VMC/Ext/Blend/Apply " << values->size() << std::endl;
     } else if (address == VMC::Marionette::Address_Bone_Pos) {
         auto bones = command->bones();
         auto boneCount = bones->size();
