@@ -29,18 +29,20 @@ enum Address {
   Address_VRM = 1,
   Address_Root_Pos = 2,
   Address_Bone_Pos = 3,
-  Address_Blend_Val = 4,
-  Address_Bend_Apply = 5,
+  Address_Blend_Names = 4,
+  Address_Blend_Val = 5,
+  Address_Bend_Apply = 6,
   Address_MIN = Address_OK,
   Address_MAX = Address_Bend_Apply
 };
 
-inline const Address (&EnumValuesAddress())[6] {
+inline const Address (&EnumValuesAddress())[7] {
   static const Address values[] = {
     Address_OK,
     Address_VRM,
     Address_Root_Pos,
     Address_Bone_Pos,
+    Address_Blend_Names,
     Address_Blend_Val,
     Address_Bend_Apply
   };
@@ -48,11 +50,12 @@ inline const Address (&EnumValuesAddress())[6] {
 }
 
 inline const char * const *EnumNamesAddress() {
-  static const char * const names[7] = {
+  static const char * const names[8] = {
     "OK",
     "VRM",
     "Root_Pos",
     "Bone_Pos",
+    "Blend_Names",
     "Blend_Val",
     "Bend_Apply",
     nullptr
@@ -279,12 +282,12 @@ inline flatbuffers::Offset<Command> CreateCommandDirect(
 struct Bone FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef BoneBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_I = 4,
+    VT_INDEX = 4,
     VT_P = 6,
     VT_Q = 8
   };
-  int8_t i() const {
-    return GetField<int8_t>(VT_I, 0);
+  int8_t index() const {
+    return GetField<int8_t>(VT_INDEX, 0);
   }
   const VMC::Marionette::Vec3 *p() const {
     return GetStruct<const VMC::Marionette::Vec3 *>(VT_P);
@@ -294,7 +297,7 @@ struct Bone FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyField<int8_t>(verifier, VT_I) &&
+           VerifyField<int8_t>(verifier, VT_INDEX) &&
            VerifyField<VMC::Marionette::Vec3>(verifier, VT_P) &&
            VerifyField<VMC::Marionette::Vec4>(verifier, VT_Q) &&
            verifier.EndTable();
@@ -305,8 +308,8 @@ struct BoneBuilder {
   typedef Bone Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_i(int8_t i) {
-    fbb_.AddElement<int8_t>(Bone::VT_I, i, 0);
+  void add_index(int8_t index) {
+    fbb_.AddElement<int8_t>(Bone::VT_INDEX, index, 0);
   }
   void add_p(const VMC::Marionette::Vec3 *p) {
     fbb_.AddStruct(Bone::VT_P, p);
@@ -328,32 +331,31 @@ struct BoneBuilder {
 
 inline flatbuffers::Offset<Bone> CreateBone(
     flatbuffers::FlatBufferBuilder &_fbb,
-    int8_t i = 0,
+    int8_t index = 0,
     const VMC::Marionette::Vec3 *p = 0,
     const VMC::Marionette::Vec4 *q = 0) {
   BoneBuilder builder_(_fbb);
   builder_.add_q(q);
   builder_.add_p(p);
-  builder_.add_i(i);
+  builder_.add_index(index);
   return builder_.Finish();
 }
 
 struct Value FLATBUFFERS_FINAL_CLASS : private flatbuffers::Table {
   typedef ValueBuilder Builder;
   enum FlatBuffersVTableOffset FLATBUFFERS_VTABLE_UNDERLYING_TYPE {
-    VT_NAME = 4,
+    VT_INDEX = 4,
     VT_VALUE = 6
   };
-  const flatbuffers::String *name() const {
-    return GetPointer<const flatbuffers::String *>(VT_NAME);
+  int8_t index() const {
+    return GetField<int8_t>(VT_INDEX, 0);
   }
   float value() const {
     return GetField<float>(VT_VALUE, 0.0f);
   }
   bool Verify(flatbuffers::Verifier &verifier) const {
     return VerifyTableStart(verifier) &&
-           VerifyOffset(verifier, VT_NAME) &&
-           verifier.VerifyString(name()) &&
+           VerifyField<int8_t>(verifier, VT_INDEX) &&
            VerifyField<float>(verifier, VT_VALUE) &&
            verifier.EndTable();
   }
@@ -363,8 +365,8 @@ struct ValueBuilder {
   typedef Value Table;
   flatbuffers::FlatBufferBuilder &fbb_;
   flatbuffers::uoffset_t start_;
-  void add_name(flatbuffers::Offset<flatbuffers::String> name) {
-    fbb_.AddOffset(Value::VT_NAME, name);
+  void add_index(int8_t index) {
+    fbb_.AddElement<int8_t>(Value::VT_INDEX, index, 0);
   }
   void add_value(float value) {
     fbb_.AddElement<float>(Value::VT_VALUE, value, 0.0f);
@@ -383,23 +385,12 @@ struct ValueBuilder {
 
 inline flatbuffers::Offset<Value> CreateValue(
     flatbuffers::FlatBufferBuilder &_fbb,
-    flatbuffers::Offset<flatbuffers::String> name = 0,
+    int8_t index = 0,
     float value = 0.0f) {
   ValueBuilder builder_(_fbb);
   builder_.add_value(value);
-  builder_.add_name(name);
+  builder_.add_index(index);
   return builder_.Finish();
-}
-
-inline flatbuffers::Offset<Value> CreateValueDirect(
-    flatbuffers::FlatBufferBuilder &_fbb,
-    const char *name = nullptr,
-    float value = 0.0f) {
-  auto name__ = name ? _fbb.CreateString(name) : 0;
-  return VMC::Marionette::CreateValue(
-      _fbb,
-      name__,
-      value);
 }
 
 inline const VMC::Marionette::Command *GetCommand(const void *buf) {

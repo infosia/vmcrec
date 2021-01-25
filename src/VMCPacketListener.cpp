@@ -97,7 +97,28 @@ void VmcPacketListener::ProcessMessage(const osc::ReceivedMessage& m,
     } else if (calibrated && std::strcmp(address, "/VMC/Ext/Blend/Val") == 0) {
         const auto name = (arg++)->AsStringUnchecked();
         const auto value = (arg++)->AsFloatUnchecked();
-        blendshapes[name] = value;
+        const auto found = blendnames.find(name);
+        if (found == blendnames.end()) {
+            const auto index = (uint8_t)blendnames.size();
+            blendnames.emplace(name, index);
+            blendshapes[index] = value;
+
+            std::vector<flatbuffers::Offset<flatbuffers::String>> names;
+            names.resize(blendnames.size());
+            for (auto v : blendnames) {
+                names[v.second] = builder.CreateString(v.first);
+            }
+            auto fbvec = builder.CreateVector(names);
+
+            CommandBuilder command(builder);
+            command.add_address(Address::Address_Blend_Names);
+            command.add_localtime(uptime);
+            command.add_names(fbvec);
+            builder.Finish(command.Finish());
+            Save();
+        } else {
+            blendshapes[found->second] = value;        
+        }
     } else if (calibrated && std::strcmp(address, "/VMC/Ext/Blend/Apply") == 0 && blendshapes.size() > 0) {
         blendshapesChanged = true;
     }
@@ -131,7 +152,7 @@ void VmcPacketListener::ProcessMessage(const osc::ReceivedMessage& m,
         if (blendshapesChanged) {
             std::vector<flatbuffers::Offset<VMC::Marionette::Value>> values;
             for (auto v : blendshapes) {
-                values.push_back(CreateValueDirect(builder, v.first.c_str(), v.second));
+                values.push_back(CreateValue(builder, v.first, v.second));
             }
             auto fbvec = builder.CreateVector(values);
 

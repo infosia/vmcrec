@@ -19,12 +19,21 @@ static void printCommand(const VMC::Marionette::Command* command)
 
         std::cout << "/VMC/Ext/OK " << loaded << " " << calibrationState << std::endl;
     } else if (address == VMC::Marionette::Address_Bend_Apply) {
-        std::cout << "/VMC/Ext/Blend/Apply " << std::endl;
+        std::cout << "/VMC/Ext/Blend/Apply ";
+        const auto values = command->values();
+        const auto size = values->size();
+
+        for (flatbuffers::uoffset_t i = 0; i < size; i++) {
+            auto index = values->Get(i)->index();
+            std::cout << (uint32_t)index << " ";
+        }
+
+        std::cout << std::endl;
     } else if (address == VMC::Marionette::Address_Bone_Pos) {
         auto bones = command->bones();
         auto boneCount = bones->size();
 
-        std::cout << "/VMC/Ext/Bone/Pos: Total " << boneCount << " bones" << std::endl;
+       std::cout << "/VMC/Ext/Bone/Pos: Total " << boneCount << " bones" << std::endl;
     }
 }
 
@@ -35,7 +44,7 @@ int main(int argc, char* argv[])
     std::uint16_t port = 39539;
     app.add_option<std::uint16_t>("-p,--port", port, "port number to bind (39539 by default)");
 
-	std::uint8_t fps = 60;
+	std::uint8_t fps = 100;
 	app.add_option("-s,--fps", fps, "frame per second");
 
     std::string output;

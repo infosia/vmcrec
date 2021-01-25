@@ -3,7 +3,6 @@
 #include <chrono>
 #include <string>
 #include <unordered_map>
-#include <vector>
 #include <fstream>
 
 #include "flatbuffers/flatbuffers.h"
@@ -34,7 +33,8 @@ public:
 
 private:
     BonePos root;
-    std::unordered_map<std::string, float> blendshapes;
+    std::unordered_map<uint8_t, float> blendshapes;
+    std::unordered_map<std::string, uint8_t> blendnames;
     std::unordered_map<cgltf_vrm_humanoid_bone_bone_v0_0, BonePos> bones;
     flatbuffers::FlatBufferBuilder builder;
     std::chrono::steady_clock::time_point lasttime;
